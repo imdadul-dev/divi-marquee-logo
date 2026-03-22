@@ -20,11 +20,9 @@
 }
 
 .dtm-trust-bar__strip {
-	background: var(--dtm-strip-bg, #ececec);
+	background: var(--dtm-strip-bg, transparent);
 	overflow: hidden;
 	padding: 0.875rem 0;
-	border-top: 1px solid rgba(0, 0, 0, 0.05);
-	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dtm-marquee {
@@ -36,7 +34,12 @@
 	display: flex;
 	width: max-content;
 	animation: dtm-marquee-scroll var(--dtm-duration, 45s) linear infinite;
+	animation-play-state: running;
 	will-change: transform;
+}
+
+.dtm-trust-bar--pause-hover:hover .dtm-marquee__track {
+	animation-play-state: paused;
 }
 
 .dtm-marquee__set {
@@ -83,8 +86,8 @@
 	width: auto;
 	height: auto;
 	max-height: var(--dtm-logo-max-h, 48px);
-	max-width: min(120px, 22vw);
-	object-fit: contain;
+	max-width: min(var(--dtm-logo-max-w, 120px), 22vw);
+	object-fit: var(--dtm-logo-object-fit, contain);
 }
 
 .dtm-item__label {
@@ -124,5 +127,13 @@
 		justify-content: center;
 		row-gap: 0.75rem;
 		width: 100%;
+	}
+}
+
+/* Divi default gutter margin on full-width column modules — not needed for this bar. */
+@media (min-width: 981px) {
+	.et_pb_gutters3 .et_pb_column_4_4 .et_pb_dtm_trust_marquee.et_pb_module,
+	.et_pb_gutters3.et_pb_row .et_pb_column_4_4 .et_pb_dtm_trust_marquee.et_pb_module {
+		margin-bottom: 0;
 	}
 }

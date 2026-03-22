@@ -33,6 +33,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'toggles' => array(
 					'main_content' => esc_html__( 'Heading', 'divi-trust-marquee' ),
 					'marquee'      => esc_html__( 'Marquee', 'divi-trust-marquee' ),
+					'logos'        => esc_html__( 'Logos', 'divi-trust-marquee' ),
 				),
 			),
 			'advanced' => array(
@@ -55,13 +56,16 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		return array(
 			'heading_text'        => '',
 			'module_bg'           => '',
-			'strip_bg'            => '#ececec',
+			'strip_bg'            => '',
 			'marquee_duration'    => '45',
 			'logo_max_height'     => '48',
 			'label_color'         => '#4a4a4a',
 			'heading_color'       => '#111111',
 			'separator_color'     => '#9a9a9a',
 			'show_dividers'       => 'on',
+			'pause_on_hover'      => 'on',
+			'logo_max_width'      => '120',
+			'logo_object_fit'     => 'contain',
 		);
 	}
 
@@ -92,9 +96,9 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'label'           => esc_html__( 'Logo Strip Background', 'divi-trust-marquee' ),
 				'type'            => 'color-alpha',
 				'option_category' => 'basic_option',
-				'description'     => esc_html__( 'Background of the scrolling logo bar only.', 'divi-trust-marquee' ),
+				'description'     => esc_html__( 'Background of the scrolling logo bar only. Leave empty for no strip background.', 'divi-trust-marquee' ),
 				'toggle_slug'     => 'marquee',
-				'default'         => '#ececec',
+				'default'         => '',
 			),
 			'heading_color' => array(
 				'label'           => esc_html__( 'Heading Color', 'divi-trust-marquee' ),
@@ -145,11 +149,23 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'fixed_range'     => true,
 				'description'     => esc_html__( 'Higher value = slower scroll.', 'divi-trust-marquee' ),
 			),
+			'pause_on_hover' => array(
+				'label'           => esc_html__( 'Pause Marquee on Hover', 'divi-trust-marquee' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'basic_option',
+				'toggle_slug'     => 'marquee',
+				'default'         => 'on',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'divi-trust-marquee' ),
+					'off' => esc_html__( 'No', 'divi-trust-marquee' ),
+				),
+				'description'     => esc_html__( 'When enabled, scrolling pauses while the pointer is over the logo strip.', 'divi-trust-marquee' ),
+			),
 			'logo_max_height' => array(
 				'label'           => esc_html__( 'Logo Max Height (px)', 'divi-trust-marquee' ),
 				'type'            => 'range',
 				'option_category' => 'basic_option',
-				'toggle_slug'     => 'marquee',
+				'toggle_slug'     => 'logos',
 				'default'         => '48',
 				'range_settings'  => array(
 					'min'  => '24',
@@ -159,6 +175,37 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'validate_unit'   => false,
 				'fixed_unit'      => '',
 				'fixed_range'     => true,
+			),
+			'logo_max_width' => array(
+				'label'           => esc_html__( 'Logo Max Width (px)', 'divi-trust-marquee' ),
+				'type'            => 'range',
+				'option_category' => 'basic_option',
+				'toggle_slug'     => 'logos',
+				'default'         => '120',
+				'range_settings'  => array(
+					'min'  => '40',
+					'max'  => '400',
+					'step' => '1',
+				),
+				'validate_unit'   => false,
+				'fixed_unit'      => '',
+				'fixed_range'     => true,
+				'description'     => esc_html__( 'Maximum width per logo image (also capped by viewport for small screens).', 'divi-trust-marquee' ),
+			),
+			'logo_object_fit' => array(
+				'label'            => esc_html__( 'Image Fit', 'divi-trust-marquee' ),
+				'type'             => 'select',
+				'option_category'  => 'basic_option',
+				'toggle_slug'      => 'logos',
+				'default'          => 'contain',
+				'options'          => array(
+					'contain'    => esc_html__( 'Contain', 'divi-trust-marquee' ),
+					'cover'      => esc_html__( 'Cover', 'divi-trust-marquee' ),
+					'fill'       => esc_html__( 'Fill', 'divi-trust-marquee' ),
+					'scale-down' => esc_html__( 'Scale down', 'divi-trust-marquee' ),
+					'none'       => esc_html__( 'None', 'divi-trust-marquee' ),
+				),
+				'description'      => esc_html__( 'How each image fits inside the max width and height box.', 'divi-trust-marquee' ),
 			),
 		);
 	}
@@ -200,6 +247,18 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 	}
 
 	/**
+	 * Whitelist object-fit for logo images.
+	 *
+	 * @param string $value Raw attribute.
+	 * @return string
+	 */
+	private function dtm_sanitize_object_fit( $value ) {
+		$allowed = array( 'contain', 'cover', 'fill', 'scale-down', 'none' );
+		$v         = strtolower( trim( (string) $value ) );
+		return in_array( $v, $allowed, true ) ? $v : 'contain';
+	}
+
+	/**
 	 * Output HTML for the trust bar + duplicated marquee track.
 	 *
 	 * @param array  $attrs Shortcode attributes.
@@ -212,10 +271,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$a        = shortcode_atts( $defaults, $attrs );
 
 		$heading = isset( $a['heading_text'] ) ? dtm_normalize_text( $a['heading_text'] ) : '';
-		$strip   = isset( $a['strip_bg'] ) ? dtm_normalize_color( $a['strip_bg'] ) : '';
-		if ( '' === $strip ) {
-			$strip = '#ececec';
-		}
+		$strip = isset( $a['strip_bg'] ) ? dtm_normalize_color( $a['strip_bg'] ) : '';
 
 		$module_bg = isset( $a['module_bg'] ) ? dtm_normalize_color( $a['module_bg'] ) : '';
 		if ( '' === trim( $module_bg ) ) {
@@ -240,6 +296,19 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 			$logo_h = 16;
 		}
 
+		$logo_w = isset( $a['logo_max_width'] ) ? absint( dtm_normalize_number( $a['logo_max_width'] ) ) : 0;
+		if ( $logo_w <= 0 ) {
+			$logo_w = 120;
+		}
+		if ( $logo_w < 40 ) {
+			$logo_w = 40;
+		}
+		if ( $logo_w > 400 ) {
+			$logo_w = 400;
+		}
+
+		$object_fit = isset( $a['logo_object_fit'] ) ? $this->dtm_sanitize_object_fit( $a['logo_object_fit'] ) : 'contain';
+
 		$label_c = isset( $a['label_color'] ) ? dtm_normalize_color( $a['label_color'] ) : '';
 		if ( '' === $label_c ) {
 			$label_c = '#4a4a4a';
@@ -258,17 +327,28 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$show_dividers_raw = isset( $a['show_dividers'] ) ? strtolower( (string) $a['show_dividers'] ) : 'on';
 		$show_dividers     = ! in_array( $show_dividers_raw, array( 'off', 'false', '0', 'no' ), true );
 
+		$pause_on_hover_raw = isset( $a['pause_on_hover'] ) ? strtolower( (string) $a['pause_on_hover'] ) : 'on';
+		$pause_on_hover     = ! in_array( $pause_on_hover_raw, array( 'off', 'false', '0', 'no' ), true );
+
 		$inner = trim( $this->dtm_get_inner_html( $content ) );
 		if ( '' === $inner ) {
 			return '';
 		}
 
-		$strip_safe       = $this->dtm_escape_css_color( $strip );
+		$strip_safe = '' === trim( $strip ) ? 'transparent' : $this->dtm_escape_css_color( $strip );
 		$heading_c_safe   = $this->dtm_escape_css_color( $heading_c );
 		$label_c_safe     = $this->dtm_escape_css_color( $label_c );
 		$separator_c_safe = $this->dtm_escape_css_color( $separator_c );
 
-		$style_id = 'dtm-' . substr( md5( $inner . $duration . $logo_h . $label_c . $separator_c . $module_bg_css . ( $show_dividers ? '1' : '0' ) ), 0, 8 );
+		$style_id = 'dtm-' . substr(
+			md5(
+				$inner . $duration . $logo_h . $logo_w . $object_fit . $label_c . $separator_c . $module_bg_css
+				. ( $show_dividers ? '1' : '0' )
+				. ( $pause_on_hover ? '1' : '0' )
+			),
+			0,
+			8
+		);
 
 		$module_class = '';
 		if ( method_exists( $this, 'module_classname' ) ) {
@@ -279,7 +359,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 
 		ob_start();
 		?>
-		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?><?php echo $show_dividers ? '' : ' dtm-trust-bar--no-dividers'; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
+		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?><?php echo $show_dividers ? '' : ' dtm-trust-bar--no-dividers'; ?><?php echo $pause_on_hover ? ' dtm-trust-bar--pause-hover' : ''; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
 			<style>
 				[data-dtm-id="<?php echo esc_attr( $style_id ); ?>"] {
 					--dtm-module-bg: <?php echo esc_html( $module_bg_css ); ?>;
@@ -288,6 +368,8 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 					--dtm-label-color: <?php echo esc_html( $label_c_safe ); ?>;
 					--dtm-separator: <?php echo esc_html( $separator_c_safe ); ?>;
 					--dtm-logo-max-h: <?php echo esc_html( (string) $logo_h ); ?>px;
+					--dtm-logo-max-w: <?php echo esc_html( (string) $logo_w ); ?>px;
+					--dtm-logo-object-fit: <?php echo esc_html( $object_fit ); ?>;
 					--dtm-duration: <?php echo esc_html( (string) $duration ); ?>s;
 				}
 			</style>
