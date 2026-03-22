@@ -18,7 +18,8 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$this->name      = esc_html__( 'Trust Bar Marquee', 'divi-trust-marquee' );
 		$this->plural    = esc_html__( 'Trust Bar Marquees', 'divi-trust-marquee' );
 		$this->slug      = 'et_pb_dtm_trust_marquee';
-		$this->vb_support = 'on';
+		// PHP-only module: "on" requires React; "partial" renders via PHP in the Visual Builder (avoids "[object Object]").
+		$this->vb_support = 'partial';
 
 		$this->is_structural = true;
 
@@ -52,13 +53,15 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 	 */
 	public function get_default_props() {
 		return array(
-			'heading_text'        => esc_html__( 'TRUSTED BY CLUBS AND ORGANISATIONS GLOBALLY', 'divi-trust-marquee' ),
-			'strip_bg'            => '#efefef',
+			'heading_text'        => '',
+			'module_bg'           => '',
+			'strip_bg'            => '#ececec',
 			'marquee_duration'    => '45',
 			'logo_max_height'     => '48',
-			'label_color'         => '#666666',
+			'label_color'         => '#4a4a4a',
 			'heading_color'       => '#111111',
-			'separator_color'     => '#cccccc',
+			'separator_color'     => '#9a9a9a',
+			'show_dividers'       => 'on',
 		);
 	}
 
@@ -73,16 +76,25 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'label'           => esc_html__( 'Heading', 'divi-trust-marquee' ),
 				'type'            => 'text',
 				'option_category' => 'basic_option',
-				'description'     => esc_html__( 'Text above the logo strip.', 'divi-trust-marquee' ),
+				'description'     => esc_html__( 'Optional. Leave empty to show only the scrolling logo strip.', 'divi-trust-marquee' ),
 				'toggle_slug'     => 'main_content',
-				'default'         => esc_html__( 'TRUSTED BY CLUBS AND ORGANISATIONS GLOBALLY', 'divi-trust-marquee' ),
+				'default'         => '',
 			),
-			'strip_bg' => array(
-				'label'           => esc_html__( 'Strip Background', 'divi-trust-marquee' ),
+			'module_bg' => array(
+				'label'           => esc_html__( 'Module Background', 'divi-trust-marquee' ),
 				'type'            => 'color-alpha',
 				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'Background behind the whole module (heading and strip). Leave empty for transparent.', 'divi-trust-marquee' ),
 				'toggle_slug'     => 'marquee',
-				'default'         => '#efefef',
+				'default'         => '',
+			),
+			'strip_bg' => array(
+				'label'           => esc_html__( 'Logo Strip Background', 'divi-trust-marquee' ),
+				'type'            => 'color-alpha',
+				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'Background of the scrolling logo bar only.', 'divi-trust-marquee' ),
+				'toggle_slug'     => 'marquee',
+				'default'         => '#ececec',
 			),
 			'heading_color' => array(
 				'label'           => esc_html__( 'Heading Color', 'divi-trust-marquee' ),
@@ -96,14 +108,26 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'type'            => 'color-alpha',
 				'option_category' => 'basic_option',
 				'toggle_slug'     => 'marquee',
-				'default'         => '#666666',
+				'default'         => '#4a4a4a',
 			),
 			'separator_color' => array(
 				'label'           => esc_html__( 'Separator Color', 'divi-trust-marquee' ),
 				'type'            => 'color-alpha',
 				'option_category' => 'basic_option',
 				'toggle_slug'     => 'marquee',
-				'default'         => '#cccccc',
+				'default'         => '#9a9a9a',
+			),
+			'show_dividers' => array(
+				'label'           => esc_html__( 'Show Dividers', 'divi-trust-marquee' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'basic_option',
+				'toggle_slug'     => 'marquee',
+				'default'         => 'on',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'divi-trust-marquee' ),
+					'off' => esc_html__( 'No', 'divi-trust-marquee' ),
+				),
+				'description'     => esc_html__( 'Vertical lines between each logo and label pair.', 'divi-trust-marquee' ),
 			),
 			'marquee_duration' => array(
 				'label'           => esc_html__( 'Full Loop Duration (seconds)', 'divi-trust-marquee' ),
@@ -164,7 +188,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 	private function dtm_escape_css_color( $color ) {
 		$color = trim( (string) $color );
 		if ( '' === $color ) {
-			return '#efefef';
+			return '#ececec';
 		}
 		if ( preg_match( '/^#([0-9a-f]{3,8})$/i', $color ) ) {
 			return $color;
@@ -172,7 +196,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		if ( preg_match( '/^rgba?\([^)]+\)$/i', $color ) ) {
 			return $color;
 		}
-		return '#efefef';
+		return '#ececec';
 	}
 
 	/**
@@ -187,22 +211,52 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$defaults = $this->get_default_props();
 		$a        = shortcode_atts( $defaults, $attrs );
 
-		$heading = isset( $a['heading_text'] ) ? $a['heading_text'] : '';
-		$strip   = isset( $a['strip_bg'] ) ? $a['strip_bg'] : '#efefef';
+		$heading = isset( $a['heading_text'] ) ? dtm_normalize_text( $a['heading_text'] ) : '';
+		$strip   = isset( $a['strip_bg'] ) ? dtm_normalize_color( $a['strip_bg'] ) : '';
+		if ( '' === $strip ) {
+			$strip = '#ececec';
+		}
 
-		$duration = isset( $a['marquee_duration'] ) ? floatval( $a['marquee_duration'] ) : 45;
+		$module_bg = isset( $a['module_bg'] ) ? dtm_normalize_color( $a['module_bg'] ) : '';
+		if ( '' === trim( $module_bg ) ) {
+			$module_bg_css = 'transparent';
+		} else {
+			$module_bg_css = $this->dtm_escape_css_color( $module_bg );
+		}
+
+		$duration = isset( $a['marquee_duration'] ) ? dtm_normalize_number( $a['marquee_duration'] ) : 0;
+		if ( $duration <= 0 ) {
+			$duration = 45;
+		}
 		if ( $duration < 5 ) {
 			$duration = 5;
 		}
 
-		$logo_h = isset( $a['logo_max_height'] ) ? absint( $a['logo_max_height'] ) : 48;
+		$logo_h = isset( $a['logo_max_height'] ) ? absint( dtm_normalize_number( $a['logo_max_height'] ) ) : 0;
+		if ( $logo_h <= 0 ) {
+			$logo_h = 48;
+		}
 		if ( $logo_h < 16 ) {
 			$logo_h = 16;
 		}
 
-		$label_c     = isset( $a['label_color'] ) ? $a['label_color'] : '#666666';
-		$heading_c   = isset( $a['heading_color'] ) ? $a['heading_color'] : '#111111';
-		$separator_c = isset( $a['separator_color'] ) ? $a['separator_color'] : '#cccccc';
+		$label_c = isset( $a['label_color'] ) ? dtm_normalize_color( $a['label_color'] ) : '';
+		if ( '' === $label_c ) {
+			$label_c = '#4a4a4a';
+		}
+
+		$heading_c = isset( $a['heading_color'] ) ? dtm_normalize_color( $a['heading_color'] ) : '';
+		if ( '' === $heading_c ) {
+			$heading_c = '#111111';
+		}
+
+		$separator_c = isset( $a['separator_color'] ) ? dtm_normalize_color( $a['separator_color'] ) : '';
+		if ( '' === $separator_c ) {
+			$separator_c = '#9a9a9a';
+		}
+
+		$show_dividers_raw = isset( $a['show_dividers'] ) ? strtolower( (string) $a['show_dividers'] ) : 'on';
+		$show_dividers     = ! in_array( $show_dividers_raw, array( 'off', 'false', '0', 'no' ), true );
 
 		$inner = trim( $this->dtm_get_inner_html( $content ) );
 		if ( '' === $inner ) {
@@ -214,7 +268,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$label_c_safe     = $this->dtm_escape_css_color( $label_c );
 		$separator_c_safe = $this->dtm_escape_css_color( $separator_c );
 
-		$style_id = 'dtm-' . substr( md5( $inner . $duration . $logo_h . $label_c . $separator_c ), 0, 8 );
+		$style_id = 'dtm-' . substr( md5( $inner . $duration . $logo_h . $label_c . $separator_c . $module_bg_css . ( $show_dividers ? '1' : '0' ) ), 0, 8 );
 
 		$module_class = '';
 		if ( method_exists( $this, 'module_classname' ) ) {
@@ -225,9 +279,10 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 
 		ob_start();
 		?>
-		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
+		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?><?php echo $show_dividers ? '' : ' dtm-trust-bar--no-dividers'; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
 			<style>
 				[data-dtm-id="<?php echo esc_attr( $style_id ); ?>"] {
+					--dtm-module-bg: <?php echo esc_html( $module_bg_css ); ?>;
 					--dtm-strip-bg: <?php echo esc_html( $strip_safe ); ?>;
 					--dtm-heading-color: <?php echo esc_html( $heading_c_safe ); ?>;
 					--dtm-label-color: <?php echo esc_html( $label_c_safe ); ?>;

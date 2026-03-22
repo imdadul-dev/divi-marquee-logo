@@ -1,10 +1,12 @@
 /**
- * Divi Trust Bar Marquee — front-end layout and infinite scroll.
+ * Divi Trust Bar Marquee — flat strip: logo + label + divider, infinite scroll.
  */
 
 .dtm-trust-bar {
 	text-align: center;
 	width: 100%;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	background: var(--dtm-module-bg, transparent);
 }
 
 .dtm-trust-bar__heading {
@@ -18,9 +20,11 @@
 }
 
 .dtm-trust-bar__strip {
-	background: var(--dtm-strip-bg, #efefef);
+	background: var(--dtm-strip-bg, #ececec);
 	overflow: hidden;
-	padding: 0.85rem 0;
+	padding: 0.875rem 0;
+	border-top: 1px solid rgba(0, 0, 0, 0.05);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dtm-marquee {
@@ -48,37 +52,47 @@
 	gap: 0.75rem;
 	padding: 0 1.75rem;
 	flex-shrink: 0;
+	min-height: calc(var(--dtm-logo-max-h, 48px) + 12px);
 }
 
 .dtm-item + .dtm-item {
-	border-left: 1px solid var(--dtm-separator, #ccc);
+	border-left: 1px solid var(--dtm-separator, #9a9a9a);
 }
 
 /* Separator between the two duplicated sets (seamless loop join). */
 .dtm-marquee__set + .dtm-marquee__set .dtm-item:first-child {
-	border-left: 1px solid var(--dtm-separator, #ccc);
+	border-left: 1px solid var(--dtm-separator, #9a9a9a);
 }
 
+.dtm-trust-bar--no-dividers .dtm-item + .dtm-item,
+.dtm-trust-bar--no-dividers .dtm-marquee__set + .dtm-marquee__set .dtm-item:first-child {
+	border-left: none;
+}
+
+/* Logos sit on the strip (no white tile); crests can be round or square. */
 .dtm-item__logo {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+	line-height: 0;
 }
 
 .dtm-item__logo img {
 	display: block;
+	width: auto;
 	height: auto;
 	max-height: var(--dtm-logo-max-h, 48px);
-	width: auto;
-	max-width: min(140px, 28vw);
+	max-width: min(120px, 22vw);
 	object-fit: contain;
 }
 
 .dtm-item__label {
-	font-size: clamp(0.8rem, 0.75rem + 0.2vw, 0.95rem);
-	line-height: 1.25;
-	color: var(--dtm-label-color, #666);
+	font-size: clamp(0.8125rem, 0.76rem + 0.2vw, 0.9375rem);
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: 0.01em;
+	color: var(--dtm-label-color, #4a4a4a);
 	white-space: nowrap;
 }
 

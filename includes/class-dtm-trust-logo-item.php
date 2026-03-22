@@ -19,7 +19,7 @@ class DTM_Trust_Logo_Item extends ET_Builder_Module {
 		$this->plural = esc_html__( 'Trust Logos', 'divi-trust-marquee' );
 
 		$this->slug       = 'et_pb_dtm_trust_logo_item';
-		$this->vb_support = 'on';
+		$this->vb_support = 'partial';
 		$this->type       = 'child';
 
 		$this->settings_modal_toggles = array(
@@ -89,11 +89,11 @@ class DTM_Trust_Logo_Item extends ET_Builder_Module {
 	public function shortcode_callback( $attrs, $content = null, $render_slug = '' ) {
 		$attrs = shortcode_atts( $this->get_default_props(), $attrs );
 
-		$logo_src   = isset( $attrs['logo_src'] ) ? $attrs['logo_src'] : '';
-		$logo_alt   = isset( $attrs['logo_alt'] ) ? $attrs['logo_alt'] : '';
-		$logo_label = isset( $attrs['logo_label'] ) ? $attrs['logo_label'] : '';
+		$logo_src   = isset( $attrs['logo_src'] ) ? dtm_normalize_upload_url( $attrs['logo_src'] ) : '';
+		$logo_alt   = isset( $attrs['logo_alt'] ) ? dtm_normalize_text( $attrs['logo_alt'] ) : '';
+		$logo_label = isset( $attrs['logo_label'] ) ? dtm_normalize_text( $attrs['logo_label'] ) : '';
 
-		if ( '' === trim( (string) $logo_src ) && '' === trim( (string) $logo_label ) ) {
+		if ( '' === trim( $logo_src ) && '' === trim( $logo_label ) ) {
 			return '';
 		}
 

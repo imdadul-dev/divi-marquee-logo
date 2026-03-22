@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Divi Trust Bar Marquee
  * Description: A Divi module with a heading and a horizontally scrolling logo strip (marquee), similar to a “trusted by” bar.
- * Version: 1.0.0
+ * Version: 1.0.5
  * Author: Custom
  * Text Domain: divi-trust-marquee
  * Requires at least: 5.0
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DTM_VERSION', '1.0.0' );
+define( 'DTM_VERSION', '1.0.5' );
 define( 'DTM_PLUGIN_FILE', __FILE__ );
 define( 'DTM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DTM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,7 @@ function dtm_load_modules() {
 		return;
 	}
 
+	require_once DTM_PLUGIN_DIR . 'includes/dtm-helpers.php';
 	require_once DTM_PLUGIN_DIR . 'includes/class-dtm-trust-logo-item.php';
 	require_once DTM_PLUGIN_DIR . 'includes/class-dtm-trust-marquee.php';
 
