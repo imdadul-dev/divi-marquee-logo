@@ -63,6 +63,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 			'heading_color'       => '#111111',
 			'separator_color'     => '#9a9a9a',
 			'show_dividers'       => 'on',
+			'force_marquee_motion' => 'off',
 			'pause_on_hover'      => 'on',
 			'logo_max_width'      => '120',
 			'logo_object_fit'     => 'contain',
@@ -147,7 +148,19 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 				'validate_unit'   => false,
 				'fixed_unit'      => '',
 				'fixed_range'     => true,
-				'description'     => esc_html__( 'Higher value = slower scroll.', 'divi-trust-marquee' ),
+				'description'     => esc_html__( 'Time for one full pass; the strip repeats forever automatically.', 'divi-trust-marquee' ),
+			),
+			'force_marquee_motion' => array(
+				'label'           => esc_html__( 'Marquee when “reduce motion” is on', 'divi-trust-marquee' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'basic_option',
+				'toggle_slug'     => 'marquee',
+				'default'         => 'off',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'divi-trust-marquee' ),
+					'off' => esc_html__( 'No', 'divi-trust-marquee' ),
+				),
+				'description'     => esc_html__( 'If Yes, the endless auto-scroll still runs when the visitor has “reduce motion” enabled (otherwise the strip becomes a static row).', 'divi-trust-marquee' ),
 			),
 			'pause_on_hover' => array(
 				'label'           => esc_html__( 'Pause Marquee on Hover', 'divi-trust-marquee' ),
@@ -330,6 +343,9 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 		$pause_on_hover_raw = isset( $a['pause_on_hover'] ) ? strtolower( (string) $a['pause_on_hover'] ) : 'on';
 		$pause_on_hover     = ! in_array( $pause_on_hover_raw, array( 'off', 'false', '0', 'no' ), true );
 
+		$force_motion_raw = isset( $a['force_marquee_motion'] ) ? strtolower( (string) $a['force_marquee_motion'] ) : 'off';
+		$force_marquee    = ! in_array( $force_motion_raw, array( 'off', 'false', '0', 'no' ), true );
+
 		$inner = trim( $this->dtm_get_inner_html( $content ) );
 		if ( '' === $inner ) {
 			return '';
@@ -344,6 +360,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 			md5(
 				$inner . $duration . $logo_h . $logo_w . $object_fit . $label_c . $separator_c . $module_bg_css
 				. ( $show_dividers ? '1' : '0' )
+				. ( $force_marquee ? '1' : '0' )
 				. ( $pause_on_hover ? '1' : '0' )
 			),
 			0,
@@ -359,7 +376,7 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 
 		ob_start();
 		?>
-		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?><?php echo $show_dividers ? '' : ' dtm-trust-bar--no-dividers'; ?><?php echo $pause_on_hover ? ' dtm-trust-bar--pause-hover' : ''; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
+		<div class="dtm-trust-bar et_pb_module et_pb_dtm_trust_marquee<?php echo $module_class ? ' ' . esc_attr( $module_class ) : ''; ?><?php echo $show_dividers ? '' : ' dtm-trust-bar--no-dividers'; ?><?php echo $force_marquee ? ' dtm-trust-bar--force-marquee' : ''; ?><?php echo $pause_on_hover ? ' dtm-trust-bar--pause-hover' : ''; ?>" data-dtm-id="<?php echo esc_attr( $style_id ); ?>">
 			<style>
 				[data-dtm-id="<?php echo esc_attr( $style_id ); ?>"] {
 					--dtm-module-bg: <?php echo esc_html( $module_bg_css ); ?>;
