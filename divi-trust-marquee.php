@@ -34,12 +34,16 @@ function dtm_load_modules() {
 	new DTM_Trust_Marquee();
 }
 add_action( 'et_builder_ready', 'dtm_load_modules', 11 );
+// Divi 5 can render modules in contexts where the visual-builder bootstrap happens later.
+// Loading on `init` (with a safety check inside dtm_load_modules) improves registration reliability.
+add_action( 'init', 'dtm_load_modules', 1 );
 
 /**
  * Front-end styles (module markup is rendered by Divi on the page).
  */
 function dtm_enqueue_assets() {
-	if ( ! class_exists( 'ET_Builder_Element' ) ) {
+	// Always enqueue on the front end; Divi 5 may not have builder classes available early enough.
+	if ( function_exists( 'is_admin' ) && is_admin() ) {
 		return;
 	}
 

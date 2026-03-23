@@ -230,12 +230,69 @@ class DTM_Trust_Marquee extends ET_Builder_Module {
 	 * @return string
 	 */
 	private function dtm_get_inner_html( $raw_content ) {
+		// Divi 5 can pass child content in slightly different shapes (string HTML, shortcode string, or arrays/objects).
+		// Normalize to a string so the rest of the renderer can stay the same.
+
 		if ( ! empty( $this->content ) ) {
-			return (string) $this->content;
+			$content = $this->content;
+			if ( is_string( $content ) ) {
+				return (string) $content;
+			}
+			if ( is_array( $content ) ) {
+				// Common case: arrays of already-rendered chunks.
+				if ( isset( $content['content'] ) ) {
+					$content = $content['content'];
+				}
+				if ( is_string( $content ) ) {
+					return (string) $content;
+				}
+				$parts = array();
+				foreach ( $content as $v ) {
+					if ( is_string( $v ) ) {
+						$parts[] = $v;
+					} elseif ( is_scalar( $v ) ) {
+						$parts[] = (string) $v;
+					}
+				}
+				return implode( '', $parts );
+			}
+			if ( is_object( $content ) && method_exists( $content, '__toString' ) ) {
+				return (string) $content;
+			}
 		}
-		if ( ! empty( $raw_content ) ) {
+
+		if ( empty( $raw_content ) ) {
+			return '';
+		}
+
+		if ( is_string( $raw_content ) ) {
 			return do_shortcode( $raw_content );
 		}
+
+		if ( is_array( $raw_content ) ) {
+			// Prefer any nested "content" key when Divi supplies structured payloads.
+			if ( isset( $raw_content['content'] ) ) {
+				$maybe = $raw_content['content'];
+				if ( is_string( $maybe ) ) {
+					return do_shortcode( $maybe );
+				}
+			}
+
+			$parts = array();
+			foreach ( $raw_content as $v ) {
+				if ( is_string( $v ) ) {
+					$parts[] = $v;
+				} elseif ( is_scalar( $v ) ) {
+					$parts[] = (string) $v;
+				}
+			}
+			return do_shortcode( implode( '', $parts ) );
+		}
+
+		if ( is_object( $raw_content ) && method_exists( $raw_content, '__toString' ) ) {
+			return do_shortcode( (string) $raw_content );
+		}
+
 		return '';
 	}
 
