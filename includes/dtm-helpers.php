@@ -10,28 +10,59 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Whether a string is only JavaScript's default object string (possibly repeated, comma-separated).
+ * Old Visual Builder saves sometimes stored this when field values were objects.
+ *
+ * @param string $s String to check.
+ * @return bool
+ */
+function dtm_string_is_only_js_object_junk( $s ) {
+	$s = trim( (string) $s );
+	if ( '' === $s ) {
+		return false;
+	}
+	$parts = preg_split( '/\s*,\s*/', $s );
+	foreach ( $parts as $part ) {
+		if ( strcasecmp( trim( $part ), '[object Object]' ) !== 0 ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Remove [object Object] tokens and tidy leftover spaces from user-facing text.
+ *
+ * @param string $value Raw string.
+ * @return string
+ */
+function dtm_strip_js_object_placeholders( $value ) {
+	$value = preg_replace( '/\s*,\s*/', ' ', (string) $value );
+	$value = preg_replace( '/\[object Object\]/i', '', $value );
+	$value = preg_replace( '/\s+/u', ' ', trim( $value ) );
+	return $value;
+}
+
+/**
  * Plain text from mixed Divi / shortcode values.
  *
  * @param mixed $value Raw value.
  * @return string
  */
 function dtm_normalize_text( $value ) {
+	$out = '';
 	if ( is_string( $value ) ) {
-		return $value;
-	}
-	if ( is_array( $value ) ) {
+		$out = $value;
+	} elseif ( is_array( $value ) ) {
 		if ( isset( $value['text'] ) && is_scalar( $value['text'] ) ) {
-			return (string) $value['text'];
+			$out = (string) $value['text'];
+		} elseif ( isset( $value['value'] ) && is_scalar( $value['value'] ) ) {
+			$out = (string) $value['value'];
 		}
-		if ( isset( $value['value'] ) && is_scalar( $value['value'] ) ) {
-			return (string) $value['value'];
-		}
-		return '';
+	} elseif ( is_scalar( $value ) ) {
+		$out = (string) $value;
 	}
-	if ( is_scalar( $value ) ) {
-		return (string) $value;
-	}
-	return '';
+	return dtm_strip_js_object_placeholders( $out );
 }
 
 /**
@@ -41,9 +72,18 @@ function dtm_normalize_text( $value ) {
  * @return string
  */
 function dtm_normalize_upload_url( $value ) {
+	if ( is_object( $value ) ) {
+		if ( isset( $value->url ) && is_string( $value->url ) ) {
+			return dtm_normalize_upload_url( $value->url );
+		}
+		if ( isset( $value->src ) && is_string( $value->src ) ) {
+			return dtm_normalize_upload_url( $value->src );
+		}
+		return '';
+	}
 	if ( is_string( $value ) ) {
 		$t = trim( $value );
-		if ( '' === $t ) {
+		if ( '' === $t || dtm_string_is_only_js_object_junk( $t ) ) {
 			return '';
 		}
 		if ( strlen( $t ) > 0 && ( '{' === $t[0] || '[' === $t[0] ) ) {
@@ -56,10 +96,10 @@ function dtm_normalize_upload_url( $value ) {
 	}
 	if ( is_array( $value ) ) {
 		if ( ! empty( $value['url'] ) && is_string( $value['url'] ) ) {
-			return $value['url'];
+			return dtm_normalize_upload_url( $value['url'] );
 		}
 		if ( ! empty( $value['src'] ) && is_string( $value['src'] ) ) {
-			return $value['src'];
+			return dtm_normalize_upload_url( $value['src'] );
 		}
 	}
 	return '';
@@ -72,6 +112,22 @@ function dtm_normalize_upload_url( $value ) {
  * @return string
  */
 function dtm_normalize_color( $value ) {
+	if ( is_object( $value ) ) {
+		if ( isset( $value->hex ) && is_string( $value->hex ) ) {
+			return dtm_normalize_color( $value->hex );
+		}
+		if ( isset( $value->r, $value->g, $value->b ) ) {
+			return dtm_normalize_color(
+				array(
+					'r' => $value->r,
+					'g' => $value->g,
+					'b' => $value->b,
+					'a' => isset( $value->a ) ? $value->a : 1.0,
+				)
+			);
+		}
+		return '';
+	}
 	if ( is_string( $value ) ) {
 		$t = trim( $value );
 		if ( '' === $t ) {
@@ -83,11 +139,14 @@ function dtm_normalize_color( $value ) {
 				return dtm_normalize_color( $d );
 			}
 		}
+		if ( dtm_string_is_only_js_object_junk( $t ) ) {
+			return '';
+		}
 		return $t;
 	}
 	if ( is_array( $value ) ) {
 		if ( ! empty( $value['hex'] ) && is_string( $value['hex'] ) ) {
-			return $value['hex'];
+			return dtm_normalize_color( $value['hex'] );
 		}
 		if ( isset( $value['r'], $value['g'], $value['b'] ) ) {
 			$r = (int) $value['r'];
@@ -110,6 +169,9 @@ function dtm_normalize_color( $value ) {
  * @return float
  */
 function dtm_normalize_number( $value ) {
+	if ( is_string( $value ) && dtm_string_is_only_js_object_junk( $value ) ) {
+		return 0.0;
+	}
 	if ( is_string( $value ) || is_int( $value ) || is_float( $value ) ) {
 		return (float) preg_replace( '/[^0-9.+-]/', '', (string) $value );
 	}
